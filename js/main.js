@@ -2,11 +2,11 @@
 // 入口：Tab 切换 / 背景图库 / 悬浮球 / API 设置弹窗（含流式开关）
 //      最后初始化三大功能模块
 // ===================================================================
-import { $, getLS, setLS, UX, headers } from '/js/utils.js';
-import { APIConfig } from '/js/api-config.js';
-import { initPersona } from '/js/modules/persona.js';
-import { initNameGen } from '/js/modules/namegen.js';
-import { initWardrobe } from '/js/modules/wardrobe.js';
+import { $, getLS, setLS, UX, headers } from './utils.js';
+import { APIConfig } from './api-config.js';
+import { initPersona } from './modules/persona.js';
+import { initNameGen } from './modules/namegen.js';
+import { initWardrobe } from './modules/wardrobe.js';
 
 // ---------- Tab 切换 ----------
 document.querySelectorAll('.tab-btn').forEach(btn => {

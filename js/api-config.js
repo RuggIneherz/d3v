@@ -1,7 +1,7 @@
 // ===================================================================
 // 共享 API 配置：多份配置档案 + 流式开关（stream_enabled，默认开启）
 // ===================================================================
-import { getLS, setLS, uuid } from '/js/utils.js';
+import { getLS, setLS, uuid } from './utils.js';
 
 const LS_PROFILES = 'shared_api_profiles_v1';
 const LS_ACTIVE = 'shared_api_active_v1';
