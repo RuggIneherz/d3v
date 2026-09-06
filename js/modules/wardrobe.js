@@ -1,5 +1,5 @@
-import { $, getLS, setLS, now, uuid, UX, fetchChat, fetchChatStream } from '/js/utils.js';
-import { APIConfig } from '/js/api-config.js';
+import { $, getLS, setLS, now, uuid, UX, fetchChat, fetchChatStream } from '../utils.js';
+import { APIConfig } from '../api-config.js';
 
 export function initWardrobe() {
 
