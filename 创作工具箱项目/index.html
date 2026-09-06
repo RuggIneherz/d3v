@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Gift For User</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "/js/utils.js": "/js/utils.js",
+    "/js/api-config.js": "/js/api-config.js",
+    "/js/modules/persona.js": "/js/modules/persona.js",
+    "/js/modules/namegen.js": "/js/modules/namegen.js",
+    "/js/modules/wardrobe.js": "/js/modules/wardrobe.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="bg-layer"></div>
+<div class="liquid-blob"></div>
+
+<div class="app-container">
+    <div class="header-bar">
+        <div class="header-animated-text">
+            <div class="anim-line-1"><span class="anim-char" style="animation-delay: 0.1s;">A</span><span class="anim-char-large" style="animation-delay: 0.3s;">Gift</span></div>
+            <div class="anim-line-2"><span class="anim-char" style="animation-delay: 0.5s;">For</span><span class="anim-char-blur anim-reflect" style="animation-delay: 0.7s;">User</span></div>
+        </div>
+        <div class="row">
+            <button class="glass-btn" id="btnOpenApi">API 设置</button>
+            <button class="glass-btn" id="btnOpenBg">背景</button>
+        </div>
+    </div>
+
+    <div class="glass-tabs">
+        <button class="tab-btn active" data-target="panel-persona">人设生成</button>
+        <button class="tab-btn" data-target="panel-name">取名器</button>
+        <button class="tab-btn" data-target="panel-wardrobe">衣柜与穿搭</button>
+    </div>
+
+    <div class="tools-grid">
+
+        <!-- 面板 1: 人设生成（功能完整移植自创作工具箱） -->
+        <div id="panel-persona" class="glass-panel active">
+    <div class="block">
+        <div class="block-title">人设模板库</div>
+        <div class="row" style="justify-content:space-between;">
+            <div class="row" style="margin:0;">
+                <button class="glass-btn" id="btnAddPreset">新增模板</button>
+                <button class="glass-btn" id="btnPresetAddGroup">新建分组</button>
+                <button class="glass-btn" id="btnPresetRenameGroup">重命名分组</button>
+                <button class="glass-btn" id="btnPresetDeleteGroup">删除分组</button>
+            </div>
+        </div>
+        <div class="row" id="presetGroupTabs" style="margin-top:10px;"></div>
+        <div class="row" id="presetTagFilter"></div>
+        <div id="presetList" class="list-container" style="max-height:260px;overflow-y:auto;"></div>
+        <div class="row">
+            <button class="glass-btn" id="btnExportPreset">导出模板库</button>
+            <label class="glass-btn">选择JSON<input id="presetImportFile" type="file" accept=".json"></label>
+            <button class="glass-btn" id="btnImportPreset">导入模板库</button>
+        </div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">素材导入：角色卡 / 世界书（世界书可逐条开关）</div>
+        <div class="grid2" style="margin-bottom:0;">
+            <div>
+                <label style="font-size:12px;">角色导入 (JSON/PNG)</label>
+                <div class="row" style="margin-top:8px;">
+                    <label class="glass-btn">选择文件<input id="roleFileInput" type="file" accept=".json,.png" /></label>
+                    <button class="glass-btn" id="btnParseRoleText">手动文本解析</button>
+                </div>
+                <div class="small" id="roleTip">导入后仅提取关键字段，不会原文输出。</div>
+            </div>
+            <div>
+                <label style="font-size:12px;">世界书导入（支持多选，自动解析条目）</label>
+                <div class="row" style="margin-top:8px;">
+                    <label class="glass-btn">选择多文件<input id="worldbookFileInput" type="file" multiple accept=".json,.txt,.md,.png" /></label>
+                    <button class="glass-btn" id="btnClearWorldbooks">清空世界书</button>
+                </div>
+                <div id="worldbookList" class="list-container" style="max-height:220px;overflow-y:auto;margin-top:8px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">角色上下文（可编辑，仅可纵向拉伸）</div>
+        <textarea id="roleContextInput" class="glass-input" style="min-height:220px;" placeholder="这里是完整角色上下文区域（可粘贴角色信息，生成时参与约束）"></textarea>
+    </div>
+
+    <div class="block">
+        <div class="block-title">灵感词（点一下加进关键词框）</div>
+        <input id="keywordsInput" class="glass-input" placeholder="例如：冷静, 慢热, 疏离感">
+        <div id="chips" class="row" style="margin-bottom:0;"></div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">人设模板 (YAML) 与生成</div>
+        <textarea id="templateInput" class="glass-input" style="min-height:220px;"></textarea>
+        <div class="row" style="margin-top:12px;">
+            <button class="glass-btn" id="btnGenerate" style="background: rgba(255,255,255,0.15);">按模板生成</button>
+            <button class="glass-btn" id="btnRandom">随机生成</button>
+            <button class="glass-btn" id="btnCopy">复制结果</button>
+            <button class="glass-btn" id="btnExport">导出TXT</button>
+            <button class="glass-btn" id="btnClearResult">清空结果</button>
+            <span class="tip" id="tip"></span>
+        </div>
+        <textarea id="resultOutput" class="glass-input" style="min-height:220px;margin-top:12px;" placeholder="生成结果会在这里，可手动编辑后再复制/导出"></textarea>
+    </div>
+
+    <details class="block">
+        <summary>历史记录</summary>
+        <div class="block-body">
+            <div class="row">
+                <input id="historySearch" class="glass-input" placeholder="搜索历史..." style="width:220px; margin:0;">
+                <select id="historyModeFilter" class="glass-select" style="width:130px; margin:0;">
+                    <option value="all">全部</option><option value="random">随机</option><option value="custom">按模板</option>
+                </select>
+                <button class="glass-btn" id="btnClearHistory">清空历史</button>
+            </div>
+            <div id="historyList" class="list-container" style="max-height:260px;overflow-y:auto;"></div>
+        </div>
+    </details>
+</div>
+
+        <!-- 面板 2: 取名器（功能完整移植自创作工具箱） -->
+        <div id="panel-name" class="glass-panel">
+    <div class="block">
+        <div class="block-title">取名基础设置</div>
+        <div class="row">
+            <div class="field"><label>语种 / 模式</label><select id="mode" class="glass-select" style="width:170px;">
+                <optgroup label="华语圈">
+                    <option value="cn">中文角色名</option>
+                    <option value="nick">中文昵称</option>
+                    <option value="hk">香港名字（粤语圈）</option>
+                    <option value="mo">澳门名字（中葡生态）</option>
+                    <option value="tw">台湾名字</option>
+                    <option value="kr">韩国名字（한글+中文）</option>
+                    <option value="jp">日本名字（漢字/かな+中文）</option>
+                </optgroup>
+                <optgroup label="西方与小语种（原文+中文对照）">
+                    <option value="en">英语名字</option>
+                    <option value="de">德语 / 北欧名字</option>
+                    <option value="ru">俄语 / 斯拉夫名字</option>
+                    <option value="la">拉丁语 / 意大利名字</option>
+                    <option value="celtic">凯尔特 / 爱尔兰 / 威尔士</option>
+                </optgroup>
+            </select></div>
+            <div class="field"><label>命名引擎</label><select id="engine" class="glass-select" style="width:160px;">
+                <option value="auto">自动（有API优先AI）</option><option value="local">仅本地词库</option><option value="ai">AI优先（失败回退本地）</option>
+            </select></div>
+            <div class="field"><label>性别</label><select id="gender" class="glass-select" style="width:100px;">
+                <option value="all">不限</option><option value="male">男</option><option value="female">女</option><option value="neutral">中性</option>
+            </select></div>
+            <div class="field"><label>展示数量</label><select id="displayCount" class="glass-select" style="width:90px;"><option>5</option><option selected>8</option><option>10</option><option>15</option></select></div>
+            <div class="field"><label>批量候选</label><select id="batchCount" class="glass-select" style="width:90px;"><option>30</option><option>50</option></select></div>
+            <div class="field"><label>去重强度</label><select id="dedupeStrength" class="glass-select" style="width:90px;">
+                <option value="weak">弱</option><option value="mid" selected>中</option><option value="strong">强</option>
+            </select></div>
+            <div class="field"><label>最低质量</label><select id="scoreThreshold" class="glass-select" style="width:90px;">
+                <option>55</option><option>60</option><option selected>65</option><option>70</option><option>75</option>
+            </select></div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+            <div class="field" style="min-width:130px;"><label>风格（中文向）</label><select id="style" class="glass-select">
+                <option value="all">不限</option><option value="ancient">古风</option><option value="modern">现代</option><option value="republic">民国</option><option value="fantasy">奇幻</option>
+            </select></div>
+            <div class="field" style="min-width:130px;"><label>世界观（预设）</label><select id="worldview" class="glass-select">
+                <option value="all">不限</option>
+                <option value="xianxia">仙侠</option><option value="wuxia">武侠</option><option value="republic">民国</option>
+                <option value="western">西幻</option><option value="steam">蒸汽朋克</option><option value="cyberpunk">赛博朋克</option>
+                <option value="campus">校园</option><option value="postapoc">末世</option><option value="abo">ABO</option>
+            </select></div>
+            <div class="field" style="min-width:110px;"><label>时代</label><select id="era" class="glass-select">
+                <option value="all">不限</option><option value="modern">现代</option><option value="ancient">古代</option><option value="republic">民国</option>
+            </select></div>
+            <div style="flex:1;min-width:240px;" class="field"><label>自定义世界观文本（AI 时生效）</label><input id="customWorldText" class="glass-input" placeholder="可填入同人世界观文本，自动用于AI（有API时）"></div>
+        </div>
+        <div class="small" style="margin-top:8px;">中文与港澳台名字只输出中文；其余语种一律输出「原文（中文对照）」。</div>
+    </div>
+
+    <details class="block">
+        <summary>中文名进阶设置（姓氏 / 辈分 / 英文派生 / 临时排除）</summary>
+        <div class="block-body">
+            <div class="row">
+                <div class="field"><label>地域姓氏包</label><select id="surnamePack" class="glass-select" style="width:110px;">
+                    <option value="common">通用</option><option value="jiangnan">江南</option><option value="beidi">北地</option><option value="xiyu">西域</option>
+                </select></div>
+                <div class="field"><label>自定义姓氏</label><input id="fixedSurname" class="glass-input" placeholder="如：刘 / 欧阳" style="width:130px;"></div>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:16px;"><input id="lockSurname" type="checkbox">锁定姓氏</label>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:16px;"><input id="familyMode" type="checkbox">家族同辈分</label>
+                <div class="field"><label>辈分字(单字可空)</label><input id="generationChar" class="glass-input" placeholder="辈分字" style="width:120px;"></div>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:16px;"><input id="withZi" type="checkbox">古代/民国附"字"</label>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:16px;"><input id="enWithSurname" type="checkbox">英文带姓氏</label>
+                <div class="field"><label>英文姓氏地区</label><select id="enLastPack" class="glass-select" style="width:110px;">
+                    <option value="common">通用</option><option value="western">西式</option><option value="steam">蒸汽</option><option value="cyberpunk">赛博</option>
+                </select></div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <div style="flex:1;min-width:240px;" class="field"><label>临时排除字</label><input id="tempExcludeChars" class="glass-input" placeholder="例：轩,瑶,宁 或 轩瑶宁（仅本次）"></div>
+                <div style="flex:1;min-width:240px;" class="field"><label>临时排除词</label><input id="tempExcludeWords" class="glass-input" placeholder="例：战神,王者（仅本次）"></div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <div style="flex:1;min-width:240px;" class="field"><label>中文参考名（中英映射）</label><input id="cnRefForEn" class="glass-input" placeholder="例：刘清昭（英文模式可参考）"></div>
+                <button class="glass-btn" id="btnEnDerive" style="align-self:flex-end;">英文派生昵称（从结果）</button>
+            </div>
+        </div>
+    </details>
+
+    <details class="block">
+        <summary>黑名单（字 / 词 / 姓氏）</summary>
+        <div class="block-body">
+            <div class="grid3">
+                <div class="glass-item">
+                    <div class="row">
+                        <input id="banCharInput" class="glass-input" placeholder="黑名单字（单字）" style="flex:1;min-width:0;padding:10px 12px;margin:0;">
+                        <button class="glass-btn" id="btnAddBanChar">拉黑字</button>
+                    </div>
+                    <div id="banCharList" class="row" style="margin-top:8px;"></div>
+                </div>
+                <div class="glass-item">
+                    <div class="row">
+                        <input id="banWordInput" class="glass-input" placeholder="黑名单词（如 战神）" style="flex:1;min-width:0;padding:10px 12px;margin:0;">
+                        <button class="glass-btn" id="btnAddBanWord">拉黑词</button>
+                    </div>
+                    <div id="banWordList" class="row" style="margin-top:8px;"></div>
+                </div>
+                <div class="glass-item">
+                    <div class="row">
+                        <input id="banSurnameInput" class="glass-input" placeholder="黑名单姓（赵/欧阳）" style="flex:1;min-width:0;padding:10px 12px;margin:0;">
+                        <button class="glass-btn" id="btnAddBanSurname">拉黑姓</button>
+                    </div>
+                    <div id="banSurnameList" class="row" style="margin-top:8px;"></div>
+                </div>
+            </div>
+            <div class="row">
+                <button class="glass-btn" id="btnExportBan">导出黑名单JSON</button>
+                <label class="glass-btn">选择文件<input id="importBanFile" type="file" accept=".json"></label>
+                <button class="glass-btn" id="btnImportBan">导入黑名单JSON</button>
+                <button class="glass-btn" id="btnClearBan">清空黑名单</button>
+            </div>
+        </div>
+    </details>
+
+    <details class="block">
+        <summary>词库包（导入更多词库）</summary>
+        <div class="block-body">
+            <div class="row">
+                <button class="glass-btn" id="btnExportLexicon">导出词库包JSON</button>
+                <label class="glass-btn">选择文件<input id="importLexiconFile" type="file" accept=".json"></label>
+                <button class="glass-btn" id="btnImportLexicon">导入词库包JSON</button>
+                <span class="small">支持追加 surnames/chars/enFirst/enLast/nickCore</span>
+            </div>
+        </div>
+    </details>
+
+    <div class="block">
+        <div class="block-title">生成与结果</div>
+        <div class="row">
+            <button class="glass-btn" id="btnGenName" style="background: rgba(255,255,255,0.15);">随机生成</button>
+            <button class="glass-btn" id="btnClearResultName">清空结果</button>
+            <button class="glass-btn" id="btnResetAll">恢复默认</button>
+            <span id="tipName" class="tip"></span>
+        </div>
+        <div class="row" style="margin-top:10px;">
+            <button class="glass-btn" id="btnCopyAll">复制全部</button>
+            <button class="glass-btn" id="btnSaveAllFav">全部收藏</button>
+            <label>收藏分组</label>
+            <select id="favGroupSelect" class="glass-select" style="width:130px;margin:0;"></select>
+            <input id="favTagsInput" class="glass-input" placeholder="收藏标签，逗号分隔" style="width:200px;margin:0;">
+        </div>
+        <div id="resultList" class="list-container"><div class="small">（结果在这里）</div></div>
+    </div>
+
+    <details class="block">
+        <summary>收藏（分组 + 标签）</summary>
+        <div class="block-body">
+            <div class="row">
+                <input id="newGroupInput" class="glass-input" placeholder="新分组名" style="width:140px;margin:0;">
+                <button class="glass-btn" id="btnAddGroup">新增分组</button>
+                <button class="glass-btn" id="btnDelGroup">删除当前分组</button>
+                <button class="glass-btn" id="btnClearFav">清空收藏</button>
+            </div>
+            <div class="row">
+                <label>查看分组</label>
+                <select id="viewGroupFilter" class="glass-select" style="width:130px;margin:0;"></select>
+                <label>标签筛选</label>
+                <input id="viewTagFilter" class="glass-input" placeholder="输入标签" style="width:140px;margin:0;">
+            </div>
+            <div id="favList" class="list-container" style="max-height:260px;overflow-y:auto;"></div>
+        </div>
+    </details>
+
+    <details class="block">
+        <summary>历史</summary>
+        <div class="block-body">
+            <div class="row"><button class="glass-btn" id="btnClearHis">清空历史</button></div>
+            <div id="hisList" class="list-container" style="max-height:260px;overflow-y:auto;"></div>
+        </div>
+    </details>
+</div>
+
+        <!-- 面板 3: 衣柜与穿搭（1.html 原有占位，原样保留） -->
+        <div id="panel-wardrobe" class="glass-panel">
+    <div class="block">
+        <div class="block-title">穿搭生成（客观描述，禁主观评价）</div>
+        <div class="small" id="wdRolePreview" style="margin-bottom:10px;"></div>
+        <div class="row">
+            <div class="field"><label>场景</label><select id="wdScene" class="glass-select" style="width:150px;">
+                <option>日常出行</option><option>校园</option><option>职场办公</option><option>正式商务</option>
+                <option>战斗任务</option><option>宴会典礼</option><option>约会</option><option>舞台演出</option>
+                <option>旅行户外</option><option>运动健身</option><option>居家</option><option>海边度假</option>
+                <option>雨雪天气</option><option>赛博夜城</option><option>古风江湖</option>
+            </select></div>
+            <div style="flex:1;min-width:200px;" class="field"><label>风格标签（逗号分隔，选填）</label><input id="wdStyleTags" class="glass-input" placeholder="如：工装 / 暗黑 / 学院 / 古风 / 赛博"></div>
+            <div style="flex:1;min-width:200px;" class="field"><label>额外约束（选填）</label><input id="wdExtra" class="glass-input" placeholder="如：必须包含帽子 / 不要裙子"></div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+            <button class="glass-btn" id="wdBtnGenerate" style="background: rgba(255,255,255,0.15);">生成穿搭文字</button>
+            <label class="glass-btn">上传图片识图提取<input id="wdVisionInput" type="file" accept="image/png,image/jpeg,image/jpg,image/webp"></label>
+            <span class="tip" id="wdTip"></span>
+        </div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">穿搭文本（可手动修改）</div>
+        <textarea id="wdEditor" class="glass-input" style="min-height:160px;" placeholder="AI 生成或识图提取的客观穿搭文本会显示在这里，也可以直接手写，例如：一件黑色立领短夹克，内搭灰色纯棉圆领T恤……"></textarea>
+        <div class="row">
+            <button class="glass-btn" id="wdBtnSplit">拆解到试衣间</button>
+            <button class="glass-btn" id="wdBtnSaveOutfit">保存为整套穿搭</button>
+            <button class="glass-btn" id="wdBtnClear">清空</button>
+        </div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">试衣间（临时拆解区：识别失败的杂句会被自动丢弃，确认后再入库）</div>
+        <div class="row">
+            <button class="glass-btn" id="wdBtnFitAll" style="background: rgba(255,255,255,0.15);">勾选单品全部入库</button>
+            <button class="glass-btn" id="wdBtnFitClear">清空试衣间</button>
+            <span class="small" id="wdFitCount"></span>
+        </div>
+        <div id="wdFitList" class="list-container"></div>
+    </div>
+
+    <div class="block">
+        <div class="block-title">衣柜（按标签选取，不再分上装/下装）</div>
+        <div class="row">
+            <span class="glass-chip active" id="view-items">单品</span>
+            <span class="glass-chip" id="view-outfits">整套穿搭</span>
+            <span class="glass-chip" id="scope-private" style="margin-left:auto;">私密抽屉</span>
+        </div>
+        <div class="tag-chip-row" id="wdTagChips" style="margin:8px 0;"></div>
+        <div class="row">
+            <input id="wdTagFilter" class="glass-input" placeholder="按标签 / 名称模糊筛选..." style="width:220px;margin:0;">
+            <button class="glass-btn" id="wdBtnAssemble">将勾选单品组装为整套</button>
+            <button class="glass-btn" id="wdBtnAddManual">手动新增单品</button>
+            <span class="small" id="wdCount"></span>
+        </div>
+        <div id="wdList" class="list-container"></div>
+        <div class="small" style="margin-top:8px;">标签自动捕获颜色与款式；点「编辑」可改名称 / 标签 / 描述。内衣袜子等私密单品仅在「私密抽屉」中显示。</div>
+    </div>
+</div>
+    </div>
+    <footer class="site-credit">悄quill · 本作品遵循 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC 4.0 协议</a></footer>
+</div>
+
+<div class="modal" id="apiModal">
+  <div class="modal-panel">
+    <h2 class="panel-title" style="justify-content:center; margin-bottom: 24px;">API 设置</h2>
+    <label>配置档案</label>
+    <div class="row" style="margin-top:6px;">
+      <select id="apiProfileSelect" class="glass-select" style="flex:1; margin:0;"></select>
+      <button class="glass-btn" id="btnNewProfile">新增</button>
+      <button class="glass-btn" id="btnRenameProfile">重命名</button>
+      <button class="glass-btn" id="btnDeleteProfile">删除</button>
+    </div>
+    <div class="small" style="margin:4px 0 12px;">两个工具共用此处选中的配置，可保存多份后随时切换。</div>
+    <label>API地址</label>
+    <input id="apiBaseUrl" class="glass-input" placeholder="https://xxx.com 或 https://xxx.com/v1">
+    <label style="display:block;margin-top:10px;">API密钥</label>
+    <input id="apiKeyInput" type="password" class="glass-input" placeholder="你的API Key">
+    <label style="display:block;margin-top:10px;">模型</label>
+    <div class="row">
+      <select id="apiModelSelect" class="glass-select" style="flex:1; margin:0;"><option value="">请拉取模型或手填</option></select>
+      <button class="glass-btn" id="btnPullModels">拉取模型</button>
+    </div>
+    <input id="apiModelManual" class="glass-input" placeholder="手填模型名（可选）" style="margin-top:10px;">
+    <label style="display:block;margin-top:14px;">备用识图 API（可选：主模型不支持视觉 / 调用失败时兜底）</label>
+    <input id="wdVisionBase" class="glass-input" placeholder="备用 Base URL，如 https://xxx.com/v1" style="margin-top:6px;">
+    <input id="wdVisionKey" type="password" class="glass-input" placeholder="备用 API Key">
+    <input id="wdVisionModel" class="glass-input" placeholder="备用模型名，如 gpt-4o-mini / Qwen-VL / GLM-4V">
+    <label style="display:block;margin-top:12px;">温度（<span id="apiTempVal">0.75</span>）</label>
+    <input id="apiTempRange" type="range" min="0" max="2" step="0.01" value="0.75" style="margin-top:8px;">
+    <label style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;">
+      <input type="checkbox" id="apiStreamCheck" checked>
+      <span>启用流式输出（逐字显示，默认开启；关闭后人设 / 穿搭改为一次性返回）</span>
+    </label>
+
+    <div class="row" style="justify-content:flex-end; margin-top: 20px;">
+      <span id="apiTip" class="tip" style="margin-right:auto;"></span>
+      <button class="glass-btn" id="btnCloseApi">关闭</button>
+      <button class="glass-btn" id="btnSaveApi" style="background: rgba(255,255,255,0.15);">保存当前配置</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="bgModal">
+  <div class="modal-panel">
+    <h2 class="panel-title" style="justify-content:center;margin-bottom:16px;">背景图库</h2>
+    <label style="font-size:12px;">备选背景（点击即应用）</label>
+    <div class="bg-grid" id="bgPresets"></div>
+    <label style="font-size:12px;display:block;margin-top:16px;">自定义图库（自动压缩，最多保存 6 张）</label>
+    <div class="bg-grid" id="bgGallery" style="margin-top:8px;"></div>
+    <div class="row" style="margin-top:14px;">
+      <label class="glass-btn">上传图片到图库<input type="file" id="bgUploader" accept="image/*"></label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="bgAuto">按北京时间自动昼夜（7:00–18:00 白昼，其余深夜）</label>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px;">
+      <button class="glass-btn" id="bgClear">一键清空</button>
+      <button class="glass-btn" id="bgClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="fabMenu">
+  <div class="fab-item"><span>回到顶部</span><button class="glass-btn" id="fabTop" title="回到顶部">↑</button></div>
+  <div class="fab-item"><span>重新生成</span><button class="glass-btn" id="fabRegen" title="重新生成">↻</button></div>
+  <div class="fab-item"><span>复制结果</span><button class="glass-btn" id="fabCopy" title="复制当前结果">⧉</button></div>
+</div>
+<button id="fabBall" title="快捷操作">✦</button>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
