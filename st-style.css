@@ -280,6 +280,12 @@
     #d3v_window.d3v-window { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
 }
 
+/* 手机竖屏：标题已占满一行，版本徽标让位隐藏，避免被挤成半个字 */
+@media (max-width: 480px) {
+    #d3v_window .d3v-badge { display: none; }
+    #d3v_window .d3v-title { gap: 6px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     #d3v_orb.d3v-orb,
     #d3v_window .d3v-btn { transition: none; }
