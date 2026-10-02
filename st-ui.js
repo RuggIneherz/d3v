@@ -7,7 +7,7 @@
 import { EXT_VERSION, getSettings, saveSettings, writeOpenState, LOG_PREFIX } from './st-host.js';
 import { mountToolbox } from './st-mount.js';
 import { createOrb } from './st-orb.js';
-import { listStPersonas, writeStPersona, readToolboxResult } from './st-persona.js';
+import { createTitlebarMenus } from './st-menus.js';
 import { applyThemeToPanel, applyThemeToToolboxHost, watchTavernTheme, currentPhase } from './st-theme.js';
 
 const OVERLAY_ID = 'd3v_overlay';
@@ -202,7 +202,7 @@ export function closePanel() {
     panelOpen = false;
     overlay.classList.remove('d3v-overlay-open');
     document.body.classList.remove('d3v-panel-open');
-    closeWriteMenu();
+    menus?.close();
     syncOrbDuringPanel();
     writeOpenState(false);
 }
@@ -230,6 +230,7 @@ const TITLEBAR_HTML = `
             <span class="d3v-badge" id="d3v_backend_badge"></span>
         </div>
         <div class="d3v-tools">
+            <button type="button" class="d3v-btn" id="d3v_btn_read" title="从酒馆读取角色卡 / 世界书 / 我的人设">⤒</button>
             <button type="button" class="d3v-btn" id="d3v_btn_write" title="把当前结果写入酒馆人设">⤓</button>
             <button type="button" class="d3v-btn" id="d3v_btn_reload" title="重置工具箱（回到初始状态）">⟳</button>
             <button type="button" class="d3v-btn" id="d3v_btn_full" title="全屏">⤢</button>
@@ -237,7 +238,8 @@ const TITLEBAR_HTML = `
             <button type="button" class="d3v-btn d3v-btn-close" id="d3v_btn_close" title="关闭（Esc）">✕</button>
         </div>
     </div>
-    <div class="d3v-write-menu" id="d3v_write_menu"></div>`;
+    <div class="d3v-menu" id="d3v_read_menu"></div>
+    <div class="d3v-menu" id="d3v_write_menu"></div>`;
 
 function buildOverlay() {
     if (overlay) return overlay;
@@ -270,11 +272,7 @@ function buildOverlay() {
     // 关不掉的兜底②：标题栏下滑关闭（手机顺手，✕ 万一被挡也有出路）
     bindTitlebarSwipe(overlay.querySelector('.d3v-titlebar'));
 
-    writeMenu = overlay.querySelector('#d3v_write_menu');
-    overlay.querySelector('#d3v_btn_write').addEventListener('click', () => {
-        if (writeMenu?.classList.contains('d3v-write-open')) closeWriteMenu();
-        else openWriteMenu();
-    });
+    menus = createTitlebarMenus({ host: overlay, getToolboxHost: () => toolboxHost });
 
     onKeyDownHandler = (event) => {
         if (event.key !== 'Escape' || !panelOpen) return;
@@ -303,38 +301,9 @@ function bindTitlebarSwipe(titlebar) {
     });
 }
 
-// ------------------------------------------------------------------ 写入酒馆人设
+// ------------------------------------------------------------------ 标题栏小面板
 
-let writeMenu = null;
-
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-function closeWriteMenu() {
-    writeMenu?.classList.remove('d3v-write-open');
-}
-
-function renderWriteItems(personas) {
-    if (!personas.length) return '<div class="d3v-write-empty">酒馆里还没有人设：先在酒馆侧边栏添加一个人设头像</div>';
-    return personas.map((p) => `<button type="button" class="d3v-write-item" data-avatar="${escapeHtml(p.avatar)}">`
-        + `<span class="d3v-write-name">${escapeHtml(p.name)}</span>`
-        + `<span class="d3v-write-meta">${p.current ? '当前 · ' : ''}${p.description ? `${p.description.length} 字` : '空'}</span>`
-        + '</button>').join('');
-}
-
-/** 打开「写入酒馆人设」小面板：列出人设，点谁就写进谁的描述 */
-function openWriteMenu() {
-    if (!writeMenu) return;
-    const text = readToolboxResult(toolboxHost);
-    writeMenu.innerHTML = `<div class="d3v-write-title">写入酒馆人设${text ? '' : '（工具箱当前没有结果）'}</div>`
-        + renderWriteItems(listStPersonas())
-        + '<div class="d3v-write-note"></div>';
-    writeMenu.classList.add('d3v-write-open');
-    writeMenu.querySelectorAll('.d3v-write-item').forEach((button) => button.addEventListener('click', () => {
-        const result = writeStPersona(button.dataset.avatar, text);
-        writeMenu.querySelector('.d3v-write-note').textContent = result.message;
-        if (result.ok) setTimeout(closeWriteMenu, 1200);
-    }));
-}
+let menus = null;
 
 export function buildUi() {
     buildOrb();
@@ -353,6 +322,7 @@ export function disposePanel() {
     stopThemeWatch = null;
     orb?.destroy();
     orb = null;
+    menus = null;
     overlay?.remove();
     document.body.classList.remove('d3v-panel-open');
     if (onKeyDownHandler) document.removeEventListener('keydown', onKeyDownHandler, true);

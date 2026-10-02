@@ -15,6 +15,9 @@
  *   st-orb.js      可拖动可自定义的状态球
  *   st-mount.js    把原版工具箱原生挂载进影子根
  *   st-ui.js       状态球 + 面板装配
+ *   st-menus.js    标题栏两个小面板：写入酒馆人设 / 从酒馆读取素材
+ *   st-persona.js  酒馆人设（Persona）读写
+ *   st-source.js   从酒馆读角色卡 / 世界书 / 我的人设 → 角色上下文
  *   st-drawer.js   ST 扩展设置里的抽屉
  *   index.js       本文件：生命周期装配
  */

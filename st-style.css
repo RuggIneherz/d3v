@@ -33,11 +33,7 @@
 #d3v_orb.d3v-orb-dragging { cursor: grabbing; transform: scale(1.08); transition: transform 0.1s ease; }
 #d3v_orb.d3v-orb-snapping { transition: left 0.22s cubic-bezier(.22, .9, .3, 1), top 0.22s cubic-bezier(.22, .9, .3, 1); }
 
-/* 自定义图片：去掉底色与投影，只留图形本身（透明底 PNG / GIF 直接透出） */
-#d3v_orb.d3v-orb-has-image {
-    background: transparent;
-    box-shadow: none;
-}
+/* 自定义图片的规则见下方「透明底图片：不裁圆、无边框、无光晕」 */
 
 #d3v_orb .d3v-orb-face {
     position: absolute;
@@ -85,6 +81,26 @@
 
 #d3v_orb.d3v-orb.d3v-phase-night {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.26), 0 0 14px rgba(120, 150, 255, 0.24);
+}
+
+/* 透明底图片（PNG / GIF）：不裁圆、不留底色、不加边框与光晕 —— 图形本体就是按钮。
+   这几条写在日夜光晕之后，靠同权重后置覆盖掉 box-shadow。 */
+#d3v_orb.d3v-orb.d3v-orb-has-image {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+#d3v_orb.d3v-orb.d3v-orb-has-image .d3v-orb-face { border-radius: 0; overflow: visible; }
+#d3v_orb.d3v-orb.d3v-orb-has-image.d3v-phase-day,
+#d3v_orb.d3v-orb.d3v-orb-has-image.d3v-phase-night { box-shadow: none; }
+
+/* 生成中的光环是圆的，套在任意形状的图上会别扭：改整图呼吸 */
+#d3v_orb.d3v-orb.d3v-orb-has-image .d3v-orb-ring { display: none; }
+#d3v_orb.d3v-orb.d3v-orb-has-image.d3v-orb-busy { animation: d3v-orb-breathe 1.4s ease-in-out infinite; }
+
+@keyframes d3v-orb-breathe {
+    50% { filter: brightness(1.3) drop-shadow(0 0 8px var(--d3v-accent, #6b7cff)); }
 }
 
 #d3v_orb .d3v-orb-tip {
@@ -237,9 +253,9 @@
 #d3v_window .d3v-btn.d3v-btn-active { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 26%, transparent); opacity: 1; }
 #d3v_window .d3v-btn-close:hover { background: rgba(228, 76, 76, 0.85); color: #fff; }
 
-/* ------------------------------------------------- 写入酒馆人设的小面板 */
+/* ------------------------------------------- 标题栏小面板（写入人设 / 从酒馆读取） */
 
-#d3v_window .d3v-write-menu {
+#d3v_window .d3v-menu {
     position: absolute;
     top: 46px;
     right: 10px;
@@ -247,8 +263,8 @@
     display: none;
     flex-direction: column;
     gap: 4px;
-    width: min(280px, 78vw);
-    max-height: 60%;
+    width: min(300px, 78vw);
+    max-height: 62%;
     overflow-y: auto;
     padding: 10px;
     border-radius: 10px;
@@ -258,10 +274,20 @@
     box-shadow: 0 14px 34px var(--d3v-shadow, rgba(0, 0, 0, 0.5));
 }
 
-#d3v_window .d3v-write-menu.d3v-write-open { display: flex; }
-#d3v_window .d3v-write-title { font-size: 12px; opacity: 0.75; margin-bottom: 4px; }
+#d3v_window .d3v-menu.d3v-menu-open { display: flex; }
+#d3v_window .d3v-menu-title { font-size: 12px; opacity: 0.75; margin-bottom: 4px; }
 
-#d3v_window .d3v-write-item {
+#d3v_window .d3v-menu-head {
+    margin-top: 6px;
+    padding-top: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    opacity: 0.55;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#d3v_window .d3v-menu-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -276,10 +302,13 @@
     cursor: pointer;
 }
 
-#d3v_window .d3v-write-item:hover { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 22%, transparent); }
-#d3v_window .d3v-write-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
-#d3v_window .d3v-write-empty,
-#d3v_window .d3v-write-note { font-size: 12px; opacity: 0.72; line-height: 1.5; }
+#d3v_window .d3v-menu-item:hover { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 22%, transparent); }
+#d3v_window .d3v-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#d3v_window .d3v-menu-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
+#d3v_window .d3v-menu-empty,
+#d3v_window .d3v-menu-note { font-size: 12px; opacity: 0.72; line-height: 1.5; }
+
+#d3v_window .d3v-menu-note { margin-top: 4px; color: var(--d3v-accent, #9db2ff); }
 
 /* ------------------------------------------------- 工具箱挂载区（影子根） */
 
@@ -333,21 +362,6 @@
 
 #d3v_settings .d3v-label { opacity: 0.75; font-size: 12px; }
 #d3v_settings .d3v-orb-input { width: 64px; text-align: center; }
-#d3v_settings .d3v-icon-list { display: flex; flex-wrap: wrap; gap: 4px; }
-
-#d3v_settings .d3v-icon-btn {
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
-    color: inherit;
-    cursor: pointer;
-    transition: background 0.14s ease;
-}
-
-#d3v_settings .d3v-icon-btn:hover { background: rgba(255, 255, 255, 0.14); }
 
 #d3v_settings .d3v-hint { display: block; margin-top: 6px; opacity: 0.72; line-height: 1.5; }
 #d3v_settings .d3v-inline-hint { margin: 0; opacity: 0.6; }
@@ -372,4 +386,5 @@
     #d3v_orb.d3v-orb,
     #d3v_window .d3v-btn { transition: none; }
     #d3v_orb.d3v-orb-busy .d3v-orb-ring { animation-duration: 4s; }
+    #d3v_orb.d3v-orb.d3v-orb-has-image.d3v-orb-busy { animation: none; }
 }

@@ -49,7 +49,7 @@ const DRAWER_HTML = `
                 </label>
                 <div class="menu_button" id="d3v_orb_image_clear">清除图片</div>
             </div>
-            <small class="d3v-hint" id="d3v_orb_image_note">透明底 PNG 会自动压到 ≤128px（保留透明），GIF 动图需 ≤220KB。</small>
+            <small class="d3v-hint" id="d3v_orb_image_note">透明底 PNG 会自动压到 ≤128px（保留透明）；上传后圆形底色与边框都会去掉，图形本体就是按钮。GIF 动图需 ≤220KB。</small>
             <div class="d3v-row">
                 <span class="d3v-label">大小</span>
                 <input type="range" id="d3v_orb_size" min="28" max="96" step="1">
@@ -147,7 +147,7 @@ function wireOrbImage(root) {
             const { dataUrl, note: info } = await prepareOrbImage(file);
             saveSettings({ orbImage: dataUrl, orbIcon: '' });
             root.querySelector('#d3v_orb_icon').value = '';
-            note.textContent = `已应用：${info}`;
+            note.textContent = `已应用：${info}（已去掉圆形底色与边框）`;
             refreshOrb();
         } catch (error) {
             note.textContent = `失败：${error?.message || error}`;

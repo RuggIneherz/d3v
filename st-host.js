@@ -9,7 +9,7 @@
  */
 
 export const LOG_PREFIX = '[创作工具箱]';
-export const EXT_VERSION = '1.3.0';            // 需与 manifest.json 的 version 一致
+export const EXT_VERSION = '1.4.0';            // 需与 manifest.json 的 version 一致
 export const EXT_KEY = 'd3v';                  // extension_settings 里的键名
 export const SETTINGS_KEY = 'd3v_st_settings_v1';
 export const OPEN_STATE_KEY = 'd3v_st_open_v1';

@@ -57,6 +57,12 @@ if (manifest) {
     if (manifest.css) check(exists(manifest.css), `样式文件存在：${manifest.css}`);
     if (manifest.minimum_client_version) notes.push(`minimum_client_version = ${manifest.minimum_client_version}`);
     if (manifest.auto_update) notes.push('auto_update = true（ST 扩展面板可一键 git pull 更新）');
+
+    // 版本号两处必须一致：manifest.json（ST 扩展列表显示）与 st-host.js（面板徽标）
+    const hostSource = read('st-host.js');
+    const versionMatch = /EXT_VERSION\s*=\s*'([^']+)'/.exec(hostSource);
+    check(!!versionMatch, 'st-host.js 里能找到 EXT_VERSION');
+    check(versionMatch?.[1] === manifest.version, `EXT_VERSION (${versionMatch?.[1]}) 与 manifest.version (${manifest.version}) 一致`);
 }
 
 // --- 2. 资源引用 -----------------------------------------------------------
