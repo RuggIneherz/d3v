@@ -9,7 +9,7 @@
 import { listStPersonas, writeStPersona, readToolboxResult } from './st-persona.js';
 import {
     listStCharacters, listStLorebooks, readCharacterBlock, readLorebookBlock,
-    formatPersonaBlock, applyBlockToToolbox, ensureStCharacters,
+    applyBlockToToolbox, loadPersonaToToolbox, ensureStCharacters,
 } from './st-source.js';
 
 const MENU_DEFS = [
@@ -50,18 +50,23 @@ async function pickWrite(menu, button) {
 
 // ------------------------------------------------------------------ 读取素材
 
+function charMeta(char) {
+    if (char.shallow) return '点开读取';
+    return char.hasDescription ? '有描述' : '无描述';
+}
+
 function renderReadMenu(menu) {
     const personas = listStPersonas();
     const characters = listStCharacters();
     const books = listStLorebooks();
-    menu.innerHTML = '<div class="d3v-menu-title">从酒馆读取 → 填进「角色上下文」（可反复叠加）</div>'
-        + sectionHtml('我的人设（有描述=优化，空=新写）', personas.map((p) => itemHtml('persona', p.avatar,
+    menu.innerHTML = '<div class="d3v-menu-title">从酒馆读取素材</div>'
+        + sectionHtml('我的人设 → 人设模板 + 结果（有描述=优化，空=新写）', personas.map((p) => itemHtml('persona', p.avatar,
             `${p.current ? '当前 · ' : ''}${p.name}`, p.description ? `优化 · ${p.description.length} 字` : '新写 · 空')).join(''),
             '酒馆里还没有人设')
-        + sectionHtml('角色卡（含卡内世界书）', characters.map((c) => itemHtml('char', c.index,
-            `${c.current ? '当前 · ' : ''}${c.name}`, c.hasDescription ? '有描述' : '无描述')).join(''),
+        + sectionHtml('角色卡 → 角色上下文（含卡内世界书）', characters.map((c) => itemHtml('char', c.index,
+            `${c.current ? '当前 · ' : ''}${c.name}`, charMeta(c))).join(''),
             '酒馆里还没有角色卡')
-        + sectionHtml('世界书', books.map((name) => itemHtml('book', name, name, '读启用条目')).join(''),
+        + sectionHtml('世界书 → 角色上下文（只读启用条目）', books.map((name) => itemHtml('book', name, name, '读启用条目')).join(''),
             '酒馆里还没有世界书')
         + '<div class="d3v-menu-note"></div>';
 }
@@ -72,9 +77,9 @@ async function pickRead(menu, button, toolboxHost) {
     if (act === 'persona') {
         const persona = listStPersonas().find((p) => p.avatar === value);
         if (!persona) return { ok: false, message: '这个酒馆人设已经不在了，重开面板试试' };
-        return applyBlockToToolbox(toolboxHost(), formatPersonaBlock(persona));
+        return loadPersonaToToolbox(toolboxHost(), persona);
     }
-    if (act === 'char') return applyBlockToToolbox(toolboxHost(), readCharacterBlock(Number(value)));
+    if (act === 'char') return applyBlockToToolbox(toolboxHost(), await readCharacterBlock(Number(value)));
     const book = await readLorebookBlock(value);
     if (!book.ok) return book;
     return applyBlockToToolbox(toolboxHost(), book.text);
