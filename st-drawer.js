@@ -6,13 +6,13 @@
  */
 import { getSettings, saveSettings } from './st-host.js';
 import { describeStConnection } from './st-backend.js';
+import { prepareOrbImage } from './st-orb.js';
 import {
     applyOrbVisibility, openInNewTab, openPanel, setFullscreen, isPanelOpen,
     refreshOrb, resetOrbPosition, refreshTheme,
 } from './st-ui.js';
 
 const DRAWER_ID = 'd3v_settings';
-const ORB_ICONS = ['🎁', '✨', '🪄', '🧵', '📖', '🎭', '🌙', '☀️'];
 
 const DRAWER_HTML = `
     <div class="inline-drawer">
@@ -39,22 +39,29 @@ const DRAWER_HTML = `
             <div class="d3v-sub">状态球</div>
             <div class="d3v-row">
                 <span class="d3v-label">图标</span>
-                <input type="text" id="d3v_orb_icon" class="text_pole d3v-orb-input" maxlength="4">
-                <div class="d3v-icon-list" id="d3v_orb_icons"></div>
+                <input type="text" id="d3v_orb_icon" class="text_pole d3v-orb-input" maxlength="4" placeholder="留空=小箱子">
+                <div class="menu_button" id="d3v_orb_icon_default">内置小箱子</div>
             </div>
             <div class="d3v-row">
+                <span class="d3v-label">自定义图片</span>
+                <label class="menu_button d3v-file-btn">上传 PNG / GIF
+                    <input type="file" id="d3v_orb_image" accept="image/png,image/gif,image/webp,image/jpeg" hidden>
+                </label>
+                <div class="menu_button" id="d3v_orb_image_clear">清除图片</div>
+            </div>
+            <small class="d3v-hint" id="d3v_orb_image_note">透明底 PNG 会自动压到 ≤128px（保留透明），GIF 动图需 ≤220KB。</small>
+            <div class="d3v-row">
                 <span class="d3v-label">大小</span>
-                <select id="d3v_orb_size" class="text_pole">
-                    <option value="small">小</option>
-                    <option value="medium">中</option>
-                    <option value="large">大</option>
-                </select>
+                <input type="range" id="d3v_orb_size" min="28" max="96" step="1">
+                <span class="d3v-label" id="d3v_orb_size_val"></span>
+            </div>
+            <div class="d3v-row">
                 <span class="d3v-label">不透明度</span>
                 <input type="range" id="d3v_orb_opacity" min="0.3" max="1" step="0.05">
             </div>
             <div class="d3v-row">
                 <div class="menu_button" id="d3v_orb_reset">状态球复位</div>
-                <small class="d3v-hint d3v-inline-hint">可直接拖动状态球，双击回到默认位置</small>
+                <small class="d3v-hint d3v-inline-hint">可直接拖动状态球</small>
             </div>
 
             <div class="d3v-sub">外观与日夜</div>
@@ -114,24 +121,59 @@ function wireRange(root, id, key, after) {
 
 function wireOrbIcons(root) {
     const iconInput = root.querySelector('#d3v_orb_icon');
-    iconInput.value = getSettings().orbIcon || '🎁';
+    iconInput.value = getSettings().orbIcon || '';
     iconInput.addEventListener('input', () => {
-        saveSettings({ orbIcon: iconInput.value || '🎁' });
+        saveSettings({ orbIcon: iconInput.value, orbImage: '' });
         refreshOrb();
     });
 
-    const list = root.querySelector('#d3v_orb_icons');
-    list.innerHTML = ORB_ICONS.map((icon) => `<button type="button" class="d3v-icon-btn" data-icon="${icon}">${icon}</button>`).join('');
-    list.querySelectorAll('.d3v-icon-btn').forEach((btn) => btn.addEventListener('click', () => {
-        iconInput.value = btn.dataset.icon;
-        saveSettings({ orbIcon: btn.dataset.icon });
+    root.querySelector('#d3v_orb_icon_default').addEventListener('click', () => {
+        iconInput.value = '';
+        saveSettings({ orbIcon: '', orbImage: '' });
+        root.querySelector('#d3v_orb_image_note').textContent = '已恢复内置小箱子图标';
         refreshOrb();
-    }));
+    });
+}
+
+function wireOrbImage(root) {
+    const input = root.querySelector('#d3v_orb_image');
+    const note = root.querySelector('#d3v_orb_image_note');
+    input.addEventListener('change', async () => {
+        const file = input.files?.[0];
+        input.value = '';
+        if (!file) return;
+        note.textContent = '处理中…';
+        try {
+            const { dataUrl, note: info } = await prepareOrbImage(file);
+            saveSettings({ orbImage: dataUrl, orbIcon: '' });
+            root.querySelector('#d3v_orb_icon').value = '';
+            note.textContent = `已应用：${info}`;
+            refreshOrb();
+        } catch (error) {
+            note.textContent = `失败：${error?.message || error}`;
+        }
+    });
+    root.querySelector('#d3v_orb_image_clear').addEventListener('click', () => {
+        saveSettings({ orbImage: '' });
+        note.textContent = '已清除自定义图片（回到内置小箱子图标）';
+        refreshOrb();
+    });
 }
 
 function wireOrbControls(root) {
     wireOrbIcons(root);
-    wireSelect(root, 'd3v_orb_size', 'orbSize', refreshOrb);
+    wireOrbImage(root);
+
+    const sizeInput = root.querySelector('#d3v_orb_size');
+    const sizeLabel = root.querySelector('#d3v_orb_size_val');
+    sizeInput.value = String(getSettings().orbSize ?? 46);
+    sizeLabel.textContent = `${sizeInput.value}px`;
+    sizeInput.addEventListener('input', () => {
+        saveSettings({ orbSize: Number(sizeInput.value) });
+        sizeLabel.textContent = `${sizeInput.value}px`;
+        refreshOrb();
+    });
+
     wireRange(root, 'd3v_orb_opacity', 'orbOpacity', refreshOrb);
     root.querySelector('#d3v_orb_reset').addEventListener('click', resetOrbPosition);
 }
