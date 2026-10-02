@@ -2,19 +2,19 @@
 // 入口：Tab 切换 / 背景图库 / 悬浮球 / API 设置弹窗（含流式开关）
 //      最后初始化三大功能模块
 // ===================================================================
-import { $, getLS, setLS, UX, headers } from './utils.js';
+import { $, $all, $one, domRoot, getLS, setLS, UX, headers, apiReadyFor, setGenerationMode, isUsingSt, hasStBackend, backendLabel, sendToHost } from './utils.js';
 import { APIConfig } from './api-config.js';
-import { initPersona } from './modules/persona.js';
-import { initNameGen } from './modules/namegen.js';
-import { initWardrobe } from './modules/wardrobe.js';
+import { initPersona } from './modules/persona/index.js';
+import { initNameGen } from './modules/namegen/index.js';
+import { initWardrobe } from './modules/wardrobe/index.js';
 
 // ---------- Tab 切换 ----------
-document.querySelectorAll('.tab-btn').forEach(btn => {
+$all('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.glass-panel').forEach(p => p.classList.remove('active'));
+    $all('.tab-btn').forEach(b => b.classList.remove('active'));
+    $all('.glass-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById(btn.dataset.target).classList.add('active');
+    $(btn.dataset.target).classList.add('active');
   });
 });
 
@@ -23,8 +23,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const LS_CUR = 'user_toolkit_custom_bg';      // 兼容旧版：当前自定义图
   const LS_GAL = 'user_bg_gallery_v1';          // 自定义图库 dataURL 数组
   const LS_PREF = 'user_bg_pref_v2';            // {mode:'auto'|'preset'|'custom'|'none', value}
-  const bgLayer = document.getElementById('bg-layer');
-  const modal = document.getElementById('bgModal');
+  const bgLayer = $('bg-layer');
+  const modal = $('bgModal');
   const getPref = () => getLS(LS_PREF, { mode: 'none', value: '' });
   const savePref = p => setLS(LS_PREF, p);
   const getGallery = () => { const g = getLS(LS_GAL, []); return Array.isArray(g) ? g : []; };
@@ -107,7 +107,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   function renderModal() {
     const pref = getPref();
-    const presetBox = document.getElementById('bgPresets');
+    const presetBox = $('bgPresets');
     presetBox.innerHTML = PRESETS.map(p =>
       `<div class="bg-swatch${pref.mode === 'preset' && pref.value === p.id ? ' active' : ''}" data-pid="${p.id}" style="background:${p.css}"><span class="sw-label">${p.name}</span></div>`
     ).join('');
@@ -117,7 +117,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 
     const gal = getGallery();
-    const galBox = document.getElementById('bgGallery');
+    const galBox = $('bgGallery');
     galBox.innerHTML = gal.length ? gal.map((u, i) =>
       `<div class="bg-thumb${pref.mode === 'custom' && pref.value === u ? ' active' : ''}" data-i="${i}" style="background-image:url('${u}')"><button class="bg-del" data-del="${i}">×</button></div>`
     ).join('') : '<span class="small">还没有自定义背景，点下方按钮上传。</span>';
@@ -133,17 +133,17 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       const g = getGallery(); g.splice(Number(b.dataset.del), 1); saveGallery(g); renderModal();
     });
 
-    document.getElementById('bgAuto').checked = pref.mode === 'auto';
+    $('bgAuto').checked = pref.mode === 'auto';
   }
 
   function openModal() { renderModal(); modal.classList.add('show'); }
   function closeModal() { modal.classList.remove('show'); }
 
-  document.getElementById('btnOpenBg').onclick = openModal;
-  document.getElementById('bgClose').onclick = closeModal;
+  $('btnOpenBg').onclick = openModal;
+  $('bgClose').onclick = closeModal;
   modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-  document.getElementById('bgUploader').addEventListener('change', async e => {
+  $('bgUploader').addEventListener('change', async e => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -165,10 +165,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     }
   });
 
-  document.getElementById('bgAuto').addEventListener('change', e => {
+  $('bgAuto').addEventListener('change', e => {
     if (e.target.checked) { savePref({ mode: 'auto', value: '' }); autoDayNight(); renderModal(); UX.toast('已开启按北京时间自动昼夜'); }
   });
-  document.getElementById('bgClear').onclick = () => {
+  $('bgClear').onclick = () => {
     localStorage.removeItem(LS_CUR); saveGallery([]); savePref({ mode: 'none', value: '' });
     clearBg(); renderModal(); UX.toast('背景已一键清空');
   };
@@ -181,33 +181,48 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ---------- 悬浮球 ----------
 (() => {
-  const ball = document.getElementById('fabBall');
-  const menu = document.getElementById('fabMenu');
+  const ball = $('fabBall');
+  const menu = $('fabMenu');
   ball.onclick = () => menu.classList.toggle('show');
-  document.addEventListener('click', e => {
+  domRoot.addEventListener('click', e => {
     if (!menu.contains(e.target) && e.target !== ball && !ball.contains(e.target)) menu.classList.remove('show');
   });
-  document.getElementById('fabTop').onclick = () => {
-    document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+  $('fabTop').onclick = () => {
+    $one('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
     menu.classList.remove('show');
   };
-  document.getElementById('fabRegen').onclick = () => {
-    const active = document.querySelector('.tab-btn.active')?.dataset.target;
+  $('fabRegen').onclick = () => {
+    const active = $one('.tab-btn.active')?.dataset.target;
     const map = { 'panel-persona': 'btnGenerate', 'panel-name': 'btnGenName', 'panel-wardrobe': 'wdBtnGenerate' };
-    const id = map[active]; if (id) document.getElementById(id)?.click();
+    const id = map[active]; if (id) $(id)?.click();
     menu.classList.remove('show');
   };
-  document.getElementById('fabCopy').onclick = async () => {
-    const active = document.querySelector('.tab-btn.active')?.dataset.target;
-    let txt = '';
-    if (active === 'panel-persona') txt = document.getElementById('resultOutput')?.value || '';
-    else if (active === 'panel-name') txt = [...document.querySelectorAll('#resultList .name')].map(x => x.textContent.trim()).join('\n');
-    else if (active === 'panel-wardrobe') txt = document.getElementById('wdEditor')?.value || '';
+  const currentResult = () => {
+    const active = $one('.tab-btn.active')?.dataset.target;
+    if (active === 'panel-persona') return $('resultOutput')?.value || '';
+    if (active === 'panel-name') return $all('#resultList .name').map(x => x.textContent.trim()).join('\n');
+    if (active === 'panel-wardrobe') return $('wdEditor')?.value || '';
+    return '';
+  };
+
+  $('fabCopy').onclick = async () => {
+    const txt = currentResult();
     menu.classList.remove('show');
     if (!txt) { UX.toast('当前没有可复制的结果'); return; }
     try { await navigator.clipboard.writeText(txt); UX.toast('已复制当前结果', 'success'); }
     catch { UX.toast('复制失败', 'error'); }
   };
+
+  // 内嵌于 SillyTavern 时：把当前结果直接送进 ST 的输入框
+  const toChatItem = $('fabToChatItem');
+  if (toChatItem) toChatItem.style.display = hasStBackend() ? '' : 'none';
+  $('fabToChat')?.addEventListener('click', () => {
+    const txt = currentResult();
+    menu.classList.remove('show');
+    if (!txt) { UX.toast('当前没有可发送的结果'); return; }
+    if (sendToHost(txt)) UX.toast('已发送到 SillyTavern 输入框', 'success');
+    else UX.toast('发送失败：未检测到 SillyTavern', 'error');
+  });
 })();
 
 // ---------- API 设置弹窗（含流式复选框同步） ----------
@@ -224,6 +239,38 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const streamCheck = $('apiStreamCheck');
 
   const setTip = m => { apiTip.textContent = m || ''; if (m) setTimeout(() => apiTip.textContent === m && (apiTip.textContent = ''), 1700); };
+
+  // ---------- 生成后端：自定义 API / SillyTavern 当前 API ----------
+  const backendRadios = $all('input[name="d3vBackend"]');
+  const stSelectable = () => hasStBackend();
+
+  function applyBackendUI() {
+    const cfg = APIConfig.getActive();
+    // 首次在 SillyTavern 里运行、且自定义 API 还什么都没填：默认直接用 ST 当前连接的模型
+    if (stSelectable() && !cfg.backend && !cfg.base_url && !cfg.api_key && !cfg.model) {
+      APIConfig.updateActive({ backend: 'st' });
+      applyBackendUI();
+      return;
+    }
+    const useSt = cfg.backend === 'st' && stSelectable();
+    setGenerationMode(useSt ? 'st' : 'custom');
+    backendRadios.forEach(r => {
+      r.disabled = r.value === 'st' && !stSelectable();
+      r.checked = (r.value === 'st') === useSt;
+    });
+    const box = $('customApiFields');
+    if (box) box.style.opacity = useSt ? '0.45' : '';
+    const hint = $('backendHint');
+    if (hint) {
+      hint.textContent = stSelectable()
+        ? (useSt ? '当前使用：SillyTavern 已连接的模型' : '当前使用：下方自定义 API')
+        : '未检测到 SillyTavern：独立网页运行时只能使用自定义 API';
+    }
+  }
+  backendRadios.forEach(r => r.addEventListener('change', () => {
+    APIConfig.updateActive({ backend: r.checked && r.value === 'st' ? 'st' : 'custom' });
+    applyBackendUI();
+  }));
   const normalize = u => (u || '').trim().replace(/\/+$/, '');
 
   function modelUrls(base) {
@@ -249,6 +296,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     tempRange.value = cfg.temperature ?? 0.75;
     tempVal.textContent = Number(tempRange.value).toFixed(2);
     if (streamCheck) streamCheck.checked = cfg.stream_enabled !== false; // 默认开启
+    applyBackendUI();
   }
 
   function openModal() {
@@ -303,9 +351,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       vision_backup_base_url: ($('wdVisionBase') || { value: '' }).value.trim(),
       vision_backup_key: ($('wdVisionKey') || { value: '' }).value.trim(),
       vision_backup_model: ($('wdVisionModel') || { value: '' }).value.trim(),
-      stream_enabled: streamCheck ? streamCheck.checked : true
+      stream_enabled: streamCheck ? streamCheck.checked : true,
+      backend: backendRadios.find(r => r.checked)?.value === 'st' ? 'st' : 'custom'
     });
     refreshProfileSelect();
+    applyBackendUI();
     setTip('已保存');
   };
 
@@ -338,6 +388,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     setTip('拉取失败，可手填模型');
     console.warn(lastErr);
   };
+
+  // 页面加载即按存档把生成后端定下来（不必先打开设置弹窗）
+  applyBackendUI();
 })();
 
 // ---------- 初始化三大模块（module 脚本默认 defer，此时 DOM 已就绪） ----------

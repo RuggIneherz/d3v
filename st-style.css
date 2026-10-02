@@ -1,0 +1,287 @@
+/* ===========================================================================
+   创作工具箱 · SillyTavern 扩展样式
+   ---------------------------------------------------------------------------
+   面板配色跟随酒馆主题（读 --SmartTheme* 后写到 --d3v-* 上，见 st-theme.js），
+   所有类名以 d3v- 前缀收口，不污染 SillyTavern 主界面。
+   工具箱自身的样式仍在 css/style.css，只在影子根内生效。
+   =========================================================================== */
+
+/* ------------------------------------------------------------ 状态球 */
+
+#d3v_orb.d3v-orb {
+    position: fixed;
+    z-index: 4500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    color: var(--d3v-text, #f2f3f8);
+    background: radial-gradient(circle at 32% 28%,
+        color-mix(in srgb, var(--d3v-accent, #8ba4ff) 42%, transparent),
+        rgba(22, 25, 38, 0.92) 68%);
+    border: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.2));
+    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42));
+    backdrop-filter: blur(calc(var(--d3v-blur, 10px) * 0.8));
+    -webkit-backdrop-filter: blur(calc(var(--d3v-blur, 10px) * 0.8));
+    transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, left 0.22s ease, top 0.22s ease;
+}
+
+#d3v_orb.d3v-orb:hover { transform: scale(1.06); }
+#d3v_orb.d3v-orb:focus-visible { outline: 2px solid var(--d3v-accent, #8ba4ff); outline-offset: 2px; }
+#d3v_orb.d3v-orb-dragging { cursor: grabbing; transform: scale(1.08); transition: transform 0.1s ease; }
+#d3v_orb.d3v-orb-snapping { transition: left 0.22s cubic-bezier(.22,.9,.3,1), top 0.22s cubic-bezier(.22,.9,.3,1); }
+
+#d3v_orb .d3v-orb-icon { font-size: 22px; line-height: 1; pointer-events: none; }
+#d3v_orb[data-size="small"] .d3v-orb-icon { font-size: 17px; }
+#d3v_orb[data-size="large"] .d3v-orb-icon { font-size: 27px; }
+
+/* 生成中：外圈光环缓慢旋转 */
+#d3v_orb .d3v-orb-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    background: conic-gradient(from 0deg,
+        transparent 0deg,
+        color-mix(in srgb, var(--d3v-accent, #8ba4ff) 85%, transparent) 120deg,
+        transparent 260deg);
+    transition: opacity 0.2s ease;
+}
+
+#d3v_orb.d3v-orb-busy .d3v-orb-ring {
+    opacity: 1;
+    animation: d3v-orb-spin 1.6s linear infinite;
+}
+
+@keyframes d3v-orb-spin { to { transform: rotate(360deg); } }
+
+/* 日夜：白昼偏暖、深夜偏冷，只影响光晕，不改结构 */
+#d3v_orb.d3v-orb.d3v-phase-day {
+    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42)), 0 0 18px rgba(255, 214, 150, 0.3);
+}
+
+#d3v_orb.d3v-orb.d3v-phase-night {
+    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42)), 0 0 16px rgba(120, 150, 255, 0.26);
+}
+
+#d3v_orb .d3v-orb-tip {
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--d3v-text, #eee);
+    background: var(--d3v-tint, rgba(23, 23, 23, 0.94));
+    border: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.14));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+#d3v_orb:hover .d3v-orb-tip { opacity: 1; }
+
+/* ------------------------------------------------------------ 面板外壳 */
+
+#d3v_overlay.d3v-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: rgba(6, 8, 16, 0.58);
+    background: color-mix(in srgb, var(--d3v-tint, #06080f) 45%, rgba(0, 0, 0, 0.6));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+#d3v_overlay.d3v-overlay-open { display: flex; }
+
+#d3v_window.d3v-window {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: min(1440px, 96vw);
+    height: min(1000px, 94vh);
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.14));
+    background: #0d0f16;
+    background: color-mix(in srgb, var(--d3v-tint, #0d0f16) 92%, #000 8%);
+    box-shadow: 0 24px 70px var(--d3v-shadow, rgba(0, 0, 0, 0.6));
+    color: var(--d3v-text, #e9e9ee);
+}
+
+#d3v_window.d3v-window * { box-sizing: border-box; }
+
+#d3v_window.d3v-window-full {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+}
+
+/* ------------------------------------------------------------ 标题栏 */
+
+#d3v_window .d3v-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0 10px 0 14px;
+    font-size: 13px;
+    line-height: 1.2;
+    user-select: none;
+    background: linear-gradient(180deg, rgba(38, 42, 62, 0.98), rgba(22, 25, 38, 0.98));
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--d3v-tint, #262a3e) 78%, #fff 8%),
+        color-mix(in srgb, var(--d3v-tint, #161926) 92%, #000 8%));
+    border-bottom: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.08));
+}
+
+#d3v_window .d3v-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#d3v_window .d3v-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--d3v-accent, #7d9bff);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--d3v-accent, #7d9bff) 80%, transparent);
+}
+
+#d3v_window .d3v-badge {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--d3v-text, #cfd6ff);
+    background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--d3v-accent, #7d9bff) 32%, transparent);
+}
+
+#d3v_window .d3v-tools { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+
+#d3v_window .d3v-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.82;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.14s ease, opacity 0.14s ease;
+}
+
+#d3v_window .d3v-btn:hover { background: rgba(255, 255, 255, 0.12); opacity: 1; }
+#d3v_window .d3v-btn.d3v-btn-active { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 26%, transparent); opacity: 1; }
+#d3v_window .d3v-btn-close:hover { background: rgba(228, 76, 76, 0.85); color: #fff; }
+
+/* ------------------------------------------------- 工具箱挂载区（影子根） */
+
+#d3v_window .d3v-stage {
+    position: relative;
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: #05060b;
+}
+
+/* 影子宿主：工具箱在这里面原生渲染。
+   transform 让工具箱内部 position:fixed 的元素（背景层 / 弹窗 / 提示）
+   相对本面板定位，而不是铺满整个 SillyTavern 窗口。 */
+#d3v_window .d3v-toolbox {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    background: #050505;
+    transform: translateZ(0);
+}
+
+#d3v_window .d3v-mount-error { padding: 24px; font-size: 13px; line-height: 1.7; color: #ff9b9b; }
+
+/* ------------------------------------------------------------ 设置抽屉 */
+
+#d3v_settings .d3v-sub {
+    margin: 12px 0 6px;
+    padding-top: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#d3v_settings .d3v-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+#d3v_settings .d3v-label { opacity: 0.75; font-size: 12px; }
+#d3v_settings .d3v-orb-input { width: 64px; text-align: center; }
+#d3v_settings .d3v-icon-list { display: flex; flex-wrap: wrap; gap: 4px; }
+
+#d3v_settings .d3v-icon-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.14s ease;
+}
+
+#d3v_settings .d3v-icon-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
+#d3v_settings .d3v-hint { display: block; margin-top: 6px; opacity: 0.72; line-height: 1.5; }
+#d3v_settings .d3v-inline-hint { margin: 0; opacity: 0.6; }
+
+/* ------------------------------------------------------------ 窄屏 */
+
+@media (max-width: 768px) {
+    #d3v_orb .d3v-orb-tip { display: none; }
+    #d3v_window.d3v-window { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #d3v_orb.d3v-orb,
+    #d3v_window .d3v-btn { transition: none; }
+    #d3v_orb.d3v-orb-busy .d3v-orb-ring { animation-duration: 4s; }
+}

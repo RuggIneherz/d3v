@@ -1,8 +1,34 @@
 // ===================================================================
-// 公共工具：DOM / 存储 / 全局提示 / 聊天请求（流式 + 非流式，含兜底）
+// 公共工具：DOM 根切换 / 存储 / 全局提示 / 生成请求
+//   - 独立网页运行时：DOM 根就是 document，生成走后端「自定义 API」
+//   - 作为 SillyTavern 扩展内嵌时：DOM 根切到影子根，
+//     生成可切换为「SillyTavern 当前 API」（由扩展注入 stBackend）
 // ===================================================================
 
-export const $ = id => document.getElementById(id);
+// ---------- DOM 根（阴影 DOM 支持） ----------
+export let domRoot = document;
+export function setDomRoot(root) { domRoot = root || document; }
+export const $ = id => domRoot.getElementById(id);
+export const $one = sel => domRoot.querySelector(sel);
+export const $all = sel => Array.from(domRoot.querySelectorAll(sel));
+
+// ---------- 生成后端 ----------
+// mode = 'custom'：用工具箱自己的 API 档案；mode = 'st'：用 SillyTavern 当前连接
+let generationMode = 'custom';
+let stBackend = null;
+
+/** 由扩展在挂载时注入 SillyTavern 后端实现 */
+export function useStBackend(impl) { stBackend = impl || null; }
+export const hasStBackend = () => !!stBackend;
+export const isUsingSt = () => generationMode === 'st' && !!stBackend;
+export function setGenerationMode(mode) { generationMode = mode === 'st' ? 'st' : 'custom'; }
+export const backendLabel = () => (isUsingSt() ? (stBackend.label || 'SillyTavern 当前 API') : '自定义 API');
+
+/** 当前是否具备生成条件：ST 模式看宿主，自定义模式看地址/密钥/模型 */
+export const apiReadyFor = cfg => (isUsingSt() ? true : !!(cfg && cfg.base_url && cfg.api_key && cfg.model));
+
+/** 把文本交给宿主（SillyTavern 输入框）；独立网页运行时返回 false */
+export const sendToHost = text => (stBackend?.insertToInput ? stBackend.insertToInput(text) : false);
 
 // 读取 localStorage：对象走 JSON；历史上有以裸字符串存储的键（草稿等），解析失败时原样返回
 export const getLS = (k, d) => {
@@ -37,7 +63,7 @@ const ensureToast = () => {
   if (!toastEl) {
     toastEl = document.createElement('div');
     toastEl.id = 'uxToast';
-    document.body.appendChild(toastEl);
+    domRoot.appendChild(toastEl);
   }
   return toastEl;
 };
@@ -63,8 +89,12 @@ export const UX = {
   }
 };
 
-// ---------- 流式请求（SSE）；后端不支持流式 / 返回普通 JSON 时自动降级，绝不卡死 ----------
+// ---------- 流式请求 ----------
+// ST 模式：交给宿主（连接管理器），失败时抛错由业务层降级
+// 自定义模式：SSE 直连；后端不支持流式 / 返回普通 JSON 时自动降级，绝不卡死
 export async function fetchChatStream(baseUrl, apiKey, payload, onChunk, onDone, signal = null) {
+  if (isUsingSt()) return stBackend.chatStream(payload, onChunk, onDone, signal);
+
   const urls = chatUrls(baseUrl);
   if (!urls.length) throw new Error('未配置 API 地址');
   const controller = new AbortController();
@@ -129,8 +159,10 @@ export async function fetchChatStream(baseUrl, apiKey, payload, onChunk, onDone,
   throw new Error(lastErr || '所有流式请求均失败');
 }
 
-// ---------- 非流式请求（保留兼容；取名器 / 识图等一次性返回场景使用） ----------
+// ---------- 非流式请求（取名器 / 识图等一次性返回场景使用） ----------
 export async function fetchChat(baseUrl, apiKey, payload) {
+  if (isUsingSt()) return stBackend.chat(payload);
+
   const urls = chatUrls(baseUrl);
   if (!urls.length) throw new Error('未配置 API 地址');
   const controller = new AbortController();
