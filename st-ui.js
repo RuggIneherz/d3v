@@ -23,9 +23,53 @@ let onKeyDownHandler = null;
 let stopThemeWatch = null;
 let busyObserver = null;
 let busyTimer = 0;
+let viewportBound = false;
 
 export function isPanelOpen() {
     return panelOpen;
+}
+
+// ------------------------------------------------------------------ 视口适配
+
+/**
+ * 用实测视口尺寸给遮罩层定尺寸（不依赖 CSS 的 inset/vh，也不依赖 <html> 的盒子）。
+ * 某些扩展（例如手机紧凑视口下的 avatar-focus）会给 <html> 加 transform 并 height:0，
+ * 这会把 position:fixed 的包含块变成 0 高，inset:0 的遮罩就会塌掉、面板被推出屏幕。
+ * 这里先给像素尺寸，再实测落点用 margin 拉回可视区。
+ */
+export function fitOverlayToViewport() {
+    if (!overlay) return null;
+    const vv = window.visualViewport;
+    const width = Math.round(vv?.width ?? window.innerWidth);
+    const height = Math.round(vv?.height ?? window.innerHeight);
+    overlay.style.width = `${width}px`;
+    overlay.style.height = `${height}px`;
+    overlay.style.left = '0px';
+    overlay.style.top = '0px';
+    overlay.style.marginLeft = '0px';
+    overlay.style.marginTop = '0px';
+    const rect = overlay.getBoundingClientRect();
+    const dx = Math.round((vv?.offsetLeft ?? 0) - rect.left);
+    const dy = Math.round((vv?.offsetTop ?? 0) - rect.top);
+    if (dx || dy) {
+        overlay.style.marginLeft = `${dx}px`;
+        overlay.style.marginTop = `${dy}px`;
+    }
+    return { width, height, dx, dy };
+}
+
+/** 视口变化（旋屏 / 手机地址栏 / 软键盘）时重新贴合 */
+function bindViewportWatchers() {
+    if (viewportBound) return;
+    viewportBound = true;
+    const refresh = () => {
+        if (panelOpen) fitOverlayToViewport();
+        orb?.place?.();
+    };
+    window.addEventListener('resize', refresh, { passive: true });
+    window.addEventListener('orientationchange', refresh, { passive: true });
+    window.visualViewport?.addEventListener('resize', refresh, { passive: true });
+    window.visualViewport?.addEventListener('scroll', refresh, { passive: true });
 }
 
 // ------------------------------------------------------------------ 主题
@@ -142,10 +186,14 @@ export function openPanel() {
     overlay.classList.add('d3v-overlay-open');
     document.body.classList.add('d3v-panel-open');
     applyFullscreen(panelWindow?.classList.contains('d3v-window-full') ?? getSettings().defaultFullscreen);
+    fitOverlayToViewport();   // 先贴合视口，再挂载/居中，避免被别人的 transform 带跑
     refreshTheme();
     void ensureMounted();
     writeOpenState(true);
-    requestAnimationFrame(() => toolboxHost?.focus?.());
+    requestAnimationFrame(() => {
+        fitOverlayToViewport();
+        toolboxHost?.focus?.();
+    });
 }
 
 export function closePanel() {
@@ -211,6 +259,13 @@ function buildOverlay() {
     });
     overlay.querySelector('#d3v_btn_tab').addEventListener('click', openInNewTab);
 
+    // 关不掉的兜底①：点遮罩空白处关闭
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closePanel();
+    });
+    // 关不掉的兜底②：标题栏下滑关闭（手机顺手，✕ 万一被挡也有出路）
+    bindTitlebarSwipe(overlay.querySelector('.d3v-titlebar'));
+
     onKeyDownHandler = (event) => {
         if (event.key !== 'Escape' || !panelOpen) return;
         // 工具箱自己的弹窗开着时，把 Esc 留给它
@@ -219,9 +274,23 @@ function buildOverlay() {
         closePanel();
     };
     document.addEventListener('keydown', onKeyDownHandler, true);
+    bindViewportWatchers();
     stopThemeWatch = watchTavernTheme(refreshTheme);
     refreshTheme();
     return overlay;
+}
+
+/** 标题栏下滑超过 80px 就收起面板 */
+function bindTitlebarSwipe(titlebar) {
+    if (!titlebar) return;
+    let startY = null;
+    titlebar.addEventListener('pointerdown', (event) => { startY = event.clientY; });
+    titlebar.addEventListener('pointercancel', () => { startY = null; });
+    titlebar.addEventListener('pointerup', (event) => {
+        const moved = startY === null ? 0 : event.clientY - startY;
+        startY = null;
+        if (moved > 80) closePanel();
+    });
 }
 
 export function buildUi() {

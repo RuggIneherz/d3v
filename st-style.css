@@ -93,12 +93,22 @@
 
 #d3v_overlay.d3v-overlay {
     position: fixed;
-    inset: 0;
-    z-index: 100000;
+    /* 不用 inset:0：某些扩展会给 <html> 加 transform（包含块变成它那个 0 高的盒子），
+       inset 会被算成 0 高，面板就会被"居中"到屏幕外。这里给显式尺寸，
+       并由 st-ui.js 用 visualViewport 实测像素覆盖 + 落点自校正。 */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    /* 高到足以压过酒馆自己的弹窗/提示（它们最高约 3 万），
+       否则面板打开时若正有 ST 弹窗，工具箱会点不动。 */
+    z-index: 2147483000;
     display: none;
     align-items: center;
     justify-content: center;
     padding: 0;
+    overscroll-behavior: contain;
     background: rgba(6, 8, 16, 0.58);
     background: color-mix(in srgb, var(--d3v-tint, #06080f) 45%, rgba(0, 0, 0, 0.6));
     backdrop-filter: blur(6px);
@@ -144,6 +154,7 @@
     font-size: 13px;
     line-height: 1.2;
     user-select: none;
+    touch-action: none; /* 标题栏用于「下滑收起」，不让浏览器把它当成滚动手势 */
     background: linear-gradient(180deg, rgba(38, 42, 62, 0.98), rgba(22, 25, 38, 0.98));
     background: linear-gradient(180deg,
         color-mix(in srgb, var(--d3v-tint, #262a3e) 78%, #fff 8%),
@@ -277,7 +288,9 @@
 
 @media (max-width: 768px) {
     #d3v_orb .d3v-orb-tip { display: none; }
-    #d3v_window.d3v-window { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
+    /* 手机：面板铺满遮罩层（遮罩层尺寸已由 JS 实测校正） */
+    #d3v_overlay.d3v-overlay { align-items: stretch; }
+    #d3v_window.d3v-window { width: 100%; height: 100%; border-radius: 0; border: none; }
 }
 
 /* 手机竖屏：标题已占满一行，版本徽标让位隐藏，避免被挤成半个字 */
