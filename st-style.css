@@ -325,6 +325,12 @@
     margin: 8px 0;
 }
 
+/* 抽屉在某些酒馆布局里很窄：控件不要被压成一字一行 */
+#d3v_settings .d3v-row > * { flex: 0 0 auto; }
+#d3v_settings .menu_button,
+#d3v_settings .checkbox_label span,
+#d3v_settings .d3v-label { white-space: nowrap; }
+
 #d3v_settings .d3v-label { opacity: 0.75; font-size: 12px; }
 #d3v_settings .d3v-orb-input { width: 64px; text-align: center; }
 #d3v_settings .d3v-icon-list { display: flex; flex-wrap: wrap; gap: 4px; }

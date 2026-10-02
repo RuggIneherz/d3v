@@ -20,8 +20,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
     openOnStart: false,       // 启动后自动打开
     defaultFullscreen: false, // 默认全屏
     rememberLastOpened: true, // 刷新页面后恢复上次开关状态
-    orbIcon: '🎁',            // 状态球图标（任意字符/emoji）
-    orbSize: 'medium',        // small | medium | large
+    orbIcon: '',              // 自定义文字/emoji；留空 = 内置 SVG 小箱子
+    orbImage: '',             // 自定义图片（dataURL，透明底 PNG / GIF）
+    orbSize: 46,              // 直径（px，28 - 96）
     orbOpacity: 1,            // 0.3 - 1
     orbPos: null,             // { x, y } 视口比例；null 表示默认位置
     followTavernTheme: true,  // 跟随酒馆主题配色
@@ -78,7 +79,22 @@ export async function loadSettings() {
         ...(local && typeof local === 'object' ? local : {}),
         ...(stored && typeof stored === 'object' ? stored : {}),
     };
-    return settings;
+    return migrateLegacySettings(settings);
+}
+
+/**
+ * 旧存档迁移（只在确实是老格式时动手）：
+ *  - 老版 orbSize 是 'small'|'medium'|'large' → 换算成像素；
+ *  - 老版默认图标是 emoji '🎁'（当时没有内置 SVG 箱子），迁移时清掉它，
+ *    否则用户升级后会一直看到那个 emoji，以为没换新图标。
+ */
+export function migrateLegacySettings(current) {
+    if (typeof current.orbSize === 'string') {
+        const legacy = { small: 38, medium: 46, large: 60 };
+        current.orbSize = legacy[current.orbSize] || 46;
+        if (current.orbIcon === '🎁' && !current.orbImage) current.orbIcon = '';
+    }
+    return current;
 }
 
 export function saveSettings(patch = {}) {
