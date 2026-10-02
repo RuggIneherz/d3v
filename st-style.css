@@ -14,42 +14,59 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     cursor: grab;
     user-select: none;
     touch-action: none;
-    color: var(--d3v-text, #f2f3f8);
-    background: radial-gradient(circle at 32% 28%,
-        color-mix(in srgb, var(--d3v-accent, #8ba4ff) 42%, transparent),
-        rgba(22, 25, 38, 0.92) 68%);
-    border: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.2));
-    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42));
-    backdrop-filter: blur(calc(var(--d3v-blur, 10px) * 0.8));
-    -webkit-backdrop-filter: blur(calc(var(--d3v-blur, 10px) * 0.8));
+    /* 纯色简约：正圆 + 主题强调色，无渐变无金属高光 */
+    color: #fff;
+    background: var(--d3v-accent, #6b7cff);
+    border: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.26);
     transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, left 0.22s ease, top 0.22s ease;
 }
 
 #d3v_orb.d3v-orb:hover { transform: scale(1.06); }
-#d3v_orb.d3v-orb:focus-visible { outline: 2px solid var(--d3v-accent, #8ba4ff); outline-offset: 2px; }
+#d3v_orb.d3v-orb:focus-visible { outline: 2px solid var(--d3v-accent, #6b7cff); outline-offset: 3px; }
 #d3v_orb.d3v-orb-dragging { cursor: grabbing; transform: scale(1.08); transition: transform 0.1s ease; }
-#d3v_orb.d3v-orb-snapping { transition: left 0.22s cubic-bezier(.22,.9,.3,1), top 0.22s cubic-bezier(.22,.9,.3,1); }
+#d3v_orb.d3v-orb-snapping { transition: left 0.22s cubic-bezier(.22, .9, .3, 1), top 0.22s cubic-bezier(.22, .9, .3, 1); }
 
-#d3v_orb .d3v-orb-icon { font-size: 22px; line-height: 1; pointer-events: none; }
-#d3v_orb[data-size="small"] .d3v-orb-icon { font-size: 17px; }
-#d3v_orb[data-size="large"] .d3v-orb-icon { font-size: 27px; }
+/* 自定义图片：去掉底色与投影，只留图形本身（透明底 PNG / GIF 直接透出） */
+#d3v_orb.d3v-orb-has-image {
+    background: transparent;
+    box-shadow: none;
+}
+
+#d3v_orb .d3v-orb-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    font-size: calc(var(--d3v-orb-size, 46px) * 0.52);
+    line-height: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#d3v_orb .d3v-orb-svg { width: 56%; height: 56%; display: block; }
 
 /* 生成中：外圈光环缓慢旋转 */
 #d3v_orb .d3v-orb-ring {
     position: absolute;
-    inset: -4px;
+    inset: -3px;
     border-radius: 50%;
     opacity: 0;
     pointer-events: none;
     background: conic-gradient(from 0deg,
         transparent 0deg,
-        color-mix(in srgb, var(--d3v-accent, #8ba4ff) 85%, transparent) 120deg,
+        color-mix(in srgb, var(--d3v-accent, #6b7cff) 85%, transparent) 120deg,
         transparent 260deg);
     transition: opacity 0.2s ease;
 }
@@ -63,11 +80,11 @@
 
 /* 日夜：白昼偏暖、深夜偏冷，只影响光晕，不改结构 */
 #d3v_orb.d3v-orb.d3v-phase-day {
-    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42)), 0 0 18px rgba(255, 214, 150, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.26), 0 0 16px rgba(255, 214, 150, 0.3);
 }
 
 #d3v_orb.d3v-orb.d3v-phase-night {
-    box-shadow: 0 10px 26px var(--d3v-shadow, rgba(0, 0, 0, 0.42)), 0 0 16px rgba(120, 150, 255, 0.26);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.26), 0 0 14px rgba(120, 150, 255, 0.24);
 }
 
 #d3v_orb .d3v-orb-tip {
@@ -119,6 +136,7 @@
 
 #d3v_window.d3v-window {
     box-sizing: border-box;
+    position: relative;
     display: flex;
     flex-direction: column;
     width: min(1440px, 96vw);
@@ -219,6 +237,50 @@
 #d3v_window .d3v-btn.d3v-btn-active { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 26%, transparent); opacity: 1; }
 #d3v_window .d3v-btn-close:hover { background: rgba(228, 76, 76, 0.85); color: #fff; }
 
+/* ------------------------------------------------- 写入酒馆人设的小面板 */
+
+#d3v_window .d3v-write-menu {
+    position: absolute;
+    top: 46px;
+    right: 10px;
+    z-index: 5;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    width: min(280px, 78vw);
+    max-height: 60%;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--d3v-border, rgba(255, 255, 255, 0.16));
+    background: #14161f;
+    background: color-mix(in srgb, var(--d3v-tint, #14161f) 94%, #000 6%);
+    box-shadow: 0 14px 34px var(--d3v-shadow, rgba(0, 0, 0, 0.5));
+}
+
+#d3v_window .d3v-write-menu.d3v-write-open { display: flex; }
+#d3v_window .d3v-write-title { font-size: 12px; opacity: 0.75; margin-bottom: 4px; }
+
+#d3v_window .d3v-write-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+#d3v_window .d3v-write-item:hover { background: color-mix(in srgb, var(--d3v-accent, #7d9bff) 22%, transparent); }
+#d3v_window .d3v-write-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
+#d3v_window .d3v-write-empty,
+#d3v_window .d3v-write-note { font-size: 12px; opacity: 0.72; line-height: 1.5; }
+
 /* ------------------------------------------------- 工具箱挂载区（影子根） */
 
 #d3v_window .d3v-stage {
@@ -283,6 +345,7 @@
 
 #d3v_settings .d3v-hint { display: block; margin-top: 6px; opacity: 0.72; line-height: 1.5; }
 #d3v_settings .d3v-inline-hint { margin: 0; opacity: 0.6; }
+#d3v_settings .d3v-file-btn { display: inline-flex; align-items: center; cursor: pointer; }
 
 /* ------------------------------------------------------------ 窄屏 */
 
