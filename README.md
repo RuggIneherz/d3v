@@ -54,6 +54,25 @@ d3v/
 
 完整步骤、选项说明与常见问题见 [SILLYTAVERN.md](SILLYTAVERN.md)。
 
+## 国内网络安装（镜像加速）
+
+SillyTavern 的「Install extension」本质是让**服务端**执行 `git clone <你填的地址>`，再读仓库根目录的 `manifest.json`。
+所以只要地址能 clone 到本仓库就行 —— **仓库名带不带连字符、是不是 github.com 都不影响**（`d3v` 这个名字完全可用）。
+
+直连 GitHub 不畅时，可以把安装地址换成下面的加速前缀（2026-10 实测可 clone，返回的提交与官方一致；第三方服务随时可能失效）：
+
+| 安装地址 | 实测 |
+| --- | --- |
+| `https://github.com/RuggIneherz/d3v` | 官方，推荐 |
+| `https://ghfast.top/https://github.com/RuggIneherz/d3v.git` | 可用 |
+| `https://gh-proxy.com/https://github.com/RuggIneherz/d3v.git` | 可用 |
+| `https://ghproxy.net/https://github.com/RuggIneherz/d3v.git` | 可用 |
+| `https://gh.llkk.cc/https://github.com/RuggIneherz/d3v.git` | 可用 |
+
+- 用哪种地址装，目录名都是 `d3v`（ST 取仓库名），彼此可互换；
+- 之后点「Update」会沿用**安装时那个地址**去 `git pull`，镜像失效时重装一次即可；
+- 这些是第三方转发/缓存服务，扩展代码会在你的酒馆里运行。介意供应链风险的话，用官方地址，或自建镜像（Gitee 等）后把安装地址换成镜像仓库。
+
 ## 如何运行（纯网页版，重要）
 
 项目使用 ES Module + importmap，模块路径为相对路径（`./js/main.js`、`css/style.css`），
